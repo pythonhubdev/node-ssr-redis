@@ -3,7 +3,6 @@ import cors                 from "cors";
 import type {Application}   from "express";
 import express              from "express";
 import rateLimit            from "express-rate-limit";
-import helmet               from "helmet";
 import swaggerJsdoc         from "swagger-jsdoc";
 import settings             from "./core/config/base";
 import errorHandler         from "./core/utils/errorHandler";
@@ -28,18 +27,6 @@ app.use(
 	}),
 );
 
-// Use Helmet for Security Headers
-app.use(
-	helmet({
-		crossOriginEmbedderPolicy: false,
-		contentSecurityPolicy: {
-			directives: {
-				defaultSrc: ["'self'"],
-				scriptSrc: ["'self'", "https://cdn.jsdelivr.net"],
-			},
-		},
-	}),
-);
 
 // Rate Limiting
 const limiter = rateLimit({
@@ -60,7 +47,7 @@ const ApiDefinition = swaggerJsdoc({
 		openapi: "3.1.0",
 		info: {
 			title: settings.app.name,
-			description: "Chronologix API Documentation",
+			description: "Node.js Express API with SSR and Redis",
 			version: "1.0.0",
 		},
 	},
@@ -77,7 +64,6 @@ app.get("/openapi.json", (_, res) => {
 app.use("/schema", openApiSpecification);
 
 app.use("/api/data", redisRouter);
-
 
 app.get("/", (req, res, next) => {
 	SsrController.getValue(req, res, next).catch(next);
@@ -100,16 +86,17 @@ app.get("/stream", async (req, res) => {
 	});
 
 	req.on("close", () => {
+		subscriber.unsubscribe();
 		subscriber.quit();
 	});
 });
 
-app.post('/api/update', async (req, res) => {
+app.post("/api/update", async (req, res) => {
 	const {value} = req.body;
 
-	await redis.set('ssr:value', JSON.stringify(value));
+	await redis.set("ssr:value", JSON.stringify(value));
 
-	await redis.publish('ssr:updates', JSON.stringify(value));
+	await redis.publish("ssr:updates", JSON.stringify(value));
 
 	res.json({success: true});
 });

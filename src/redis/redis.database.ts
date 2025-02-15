@@ -1,6 +1,5 @@
-// redis.base.ts
-import {createClient, type RedisClientType} from "redis";
-import logger                               from "../core/utils/logger";
+import { createClient, type RedisClientType } from "redis";
+import logger from "../core/utils/logger";
 
 type RedisValue = string | number | boolean | object;
 
@@ -9,19 +8,20 @@ export class RedisBase {
 	private static instance: RedisBase;
 	private isConnected = false;
 
-
 	private constructor() {
 		this.client = createClient({
-			url: `redis://${process.env.REDIS_HOST || 'localhost'}:${process.env.REDIS_PORT || 6379}`
+			url: `redis://${process.env.REDIS_HOST || "localhost"}:${process.env.REDIS_PORT || 6379}`,
 		});
 
-		this.client.on('error', (err) => console.error('Redis Client Error:', err));
-		this.client.on('connect', () => {
-			logger.info('Redis connected');
+		this.client.on("error", (err) =>
+			console.error("Redis Client Error:", err),
+		);
+		this.client.on("connect", () => {
+			logger.info("Redis connected");
 			this.isConnected = true;
 		});
-		this.client.on('end', () => {
-			logger.info('Redis disconnected');
+		this.client.on("end", () => {
+			logger.info("Redis disconnected");
 			this.isConnected = false;
 		});
 	}
@@ -40,9 +40,8 @@ export class RedisBase {
 		}
 	}
 
-
 	async get<T>(key: string): Promise<T | string | null> {
-		if (!this.isConnected) throw new Error('Redis client not connected');
+		if (!this.isConnected) throw new Error("Redis client not connected");
 		const value = await this.client.get(key);
 
 		if (!value) return null;
@@ -55,7 +54,8 @@ export class RedisBase {
 	}
 
 	async set(key: string, value: RedisValue, ttl?: number): Promise<boolean> {
-		const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
+		const stringValue =
+			typeof value === "string" ? value : JSON.stringify(value);
 
 		if (ttl) {
 			await this.client.setEx(key, ttl, stringValue);
@@ -82,11 +82,9 @@ export class RedisBase {
 		);
 	}
 
-
 	async publish(channel: string, message: RedisValue): Promise<number> {
 		return this.client.publish(channel, JSON.stringify(message));
 	}
-
 
 	getClient(): RedisClientType {
 		return this.client;
